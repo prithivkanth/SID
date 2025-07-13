@@ -1,0 +1,15 @@
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# VSCode settings and cache
+.vscode/
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Backup files
+*~
