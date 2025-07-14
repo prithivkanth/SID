@@ -13,6 +13,7 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(walle_msg REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 
@@ -27,6 +28,9 @@ ament_target_dependencies(simple_controller rclcpp geometry_msgs std_msgs ${Eige
 add_executable(simple_tf_kinematics src/simple_tf_kinematics.cpp)
 ament_target_dependencies(simple_tf_kinematics rclcpp tf2_ros geometry_msgs std_msgs)
 
+add_executable(simple_service_server src/simple_service_server.cpp)
+ament_target_dependencies(simple_service_server rclcpp walle_msg)
+
 install(
   DIRECTORY include
   DESTINATION include
@@ -35,6 +39,7 @@ install(
 install(TARGETS
   simple_controller
   simple_tf_kinematics
+  simple_service_server
   DESTINATION lib/${PROJECT_NAME}
 )
 
