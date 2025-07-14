@@ -13,6 +13,8 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(tf2_ros REQUIRED)
+
 
 ament_python_install_package(${PROJECT_NAME})
 
@@ -22,6 +24,9 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 add_executable(simple_controller src/simple_controller.cpp)
 ament_target_dependencies(simple_controller rclcpp geometry_msgs std_msgs ${Eigen_LIBRARIES})
 
+add_executable(simple_tf_kinematics src/simple_tf_kinematics.cpp)
+ament_target_dependencies(simple_tf_kinematics rclcpp tf2_ros geometry_msgs std_msgs)
+
 install(
   DIRECTORY include
   DESTINATION include
@@ -29,6 +34,7 @@ install(
 
 install(TARGETS
   simple_controller
+  simple_tf_kinematics
   DESTINATION lib/${PROJECT_NAME}
 )
 
