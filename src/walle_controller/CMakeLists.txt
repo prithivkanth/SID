@@ -31,6 +31,9 @@ ament_target_dependencies(simple_tf_kinematics rclcpp tf2_ros geometry_msgs std_
 add_executable(simple_service_server src/simple_service_server.cpp)
 ament_target_dependencies(simple_service_server rclcpp walle_msg)
 
+add_executable(simple_client_server src/simple_client_server.cpp)
+ament_target_dependencies(simple_client_server rclcpp walle_msg)
+
 install(
   DIRECTORY include
   DESTINATION include
@@ -40,6 +43,7 @@ install(TARGETS
   simple_controller
   simple_tf_kinematics
   simple_service_server
+  simple_client_server
   DESTINATION lib/${PROJECT_NAME}
 )
 
