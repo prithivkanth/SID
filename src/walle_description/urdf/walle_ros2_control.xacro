@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <robot name="walle" xmlns:xacro="http://www.ros.org/wiki/xacro" >
 
-    <ros2_control name="RobotSystem" type="sytem">
+    <ros2_control name="RobotSystem" type="system">
 
         
         <xacro:if value="$(arg is_ignition)">
