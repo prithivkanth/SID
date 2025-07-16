@@ -1,5 +1,5 @@
 # Request 
-string farme_id
+string frame_id
 string child_frame_id
 ---
 # Response
