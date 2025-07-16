@@ -15,6 +15,8 @@ find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(walle_msg REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
+
 
 
 ament_python_install_package(${PROJECT_NAME})
@@ -26,7 +28,7 @@ add_executable(simple_controller src/simple_controller.cpp)
 ament_target_dependencies(simple_controller rclcpp geometry_msgs std_msgs ${Eigen_LIBRARIES})
 
 add_executable(simple_tf_kinematics src/simple_tf_kinematics.cpp)
-ament_target_dependencies(simple_tf_kinematics rclcpp tf2_ros geometry_msgs std_msgs walle_msg)
+ament_target_dependencies(simple_tf_kinematics rclcpp tf2_ros geometry_msgs std_msgs walle_msg tf2)
 
 add_executable(simple_service_server src/simple_service_server.cpp)
 ament_target_dependencies(simple_service_server rclcpp walle_msg)
