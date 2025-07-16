@@ -20,7 +20,7 @@
     <geometry>
       <mesh filename="file://$(find walle_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="yellow"/>
   </visual>
   <collision>
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -41,7 +41,7 @@
     <geometry>
       <mesh filename="file://$(find walle_description)/meshes/left_wheel_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="black"/>
   </visual>
   <collision>
     <origin xyz="-0.055171 -0.2712 -0.054001" rpy="0 0 0"/>
@@ -62,7 +62,7 @@
     <geometry>
       <mesh filename="file://$(find walle_description)/meshes/right_wheel_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="black"/>
   </visual>
   <collision>
     <origin xyz="-0.055171 -0.051801 -0.054001" rpy="0 0 0"/>
@@ -104,7 +104,7 @@
     <geometry>
       <mesh filename="file://$(find walle_description)/meshes/lidar_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="black"/>
   </visual>
   <collision>
     <origin xyz="-0.112168 -0.16141 -0.179797" rpy="0 0 0"/>
