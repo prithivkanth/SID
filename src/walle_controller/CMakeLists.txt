@@ -30,6 +30,9 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 add_executable(simple_controller src/simple_controller.cpp)
 ament_target_dependencies(simple_controller rclcpp geometry_msgs std_msgs ${Eigen_LIBRARIES} sensor_msgs nav_msgs tf2_ros tf2)
 
+add_executable(noisy_controller src/noisy_controller.cpp)
+ament_target_dependencies(noisy_controller rclcpp geometry_msgs std_msgs ${Eigen_LIBRARIES} sensor_msgs nav_msgs tf2_ros tf2)
+
 add_executable(simple_tf_kinematics src/simple_tf_kinematics.cpp)
 ament_target_dependencies(simple_tf_kinematics rclcpp tf2_ros geometry_msgs std_msgs walle_msg tf2)
 
@@ -46,6 +49,7 @@ install(
 
 install(TARGETS
   simple_controller
+  noisy_controller
   simple_tf_kinematics
   simple_service_server
   simple_client_server
