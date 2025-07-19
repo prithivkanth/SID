@@ -28,7 +28,7 @@ NoisyController::NoisyController(const std::string &name) : Node(name)
 
   
     joint_sub_ = create_subscription<sensor_msgs::msg::JointState>("/joint_states", 10, std::bind(&NoisyController::jointCallback, this, _1)); 
-    odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("/walle_controller/odom", 10);
+    odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("/walle_controller/odom_noisy", 10);
 
      // Fill the Odometry message with invariant parameters
     odom_msg_.header.frame_id = "odom";
@@ -119,7 +119,7 @@ void NoisyController::jointCallback(const sensor_msgs::msg::JointState &msg)
 int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<NoisyController>("simple_controller");
+    auto node = std::make_shared<NoisyController>("noisy_controller");
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;

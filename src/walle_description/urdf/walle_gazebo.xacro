@@ -42,7 +42,7 @@
       <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
         <parameters>$(find walle_controller)/config/walle_controllers.yaml</parameters>
       </plugin>
-      <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::system::Imu">
+      <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu">
       </plugin>
     </xacro:if>
 
