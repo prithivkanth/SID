@@ -14,14 +14,14 @@ KalmanFilter::KalmanFilter(const std::string & name)
     , measurement_variance_(0.5)
 {
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("walle_controller/odom_noisy", 10, std::bind(&KalmanFilter::odomCallback, this, _1));
-    imu_sub_ = create_subscription<sensor_msgs::msg::Imu>("imu/data", 10, std::bind(&KalmanFilter::imuCallback, this, _1));
-
+    imu_sub_ = create_subscription<sensor_msgs::msg::Imu>("imu/out", 10, std::bind(&KalmanFilter::imuCallback, this, _1));
+    odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("walle_controller/odom_kalman", 10);
 
 }
 
 void KalmanFilter::odomCallback(const nav_msgs::msg::Odometry &odom)
 {
-    kalaman_odom_ = odom;
+    kalman_odom_ = odom;
 
     if(is_first_odom_)
     {
@@ -31,7 +31,14 @@ void KalmanFilter::odomCallback(const nav_msgs::msg::Odometry &odom)
         return ;
     }
 
+    mean_ = odom.twist.twist.angular.z;
     
+    statePrediction();
+    measurementUpdate();
+
+    kalman_odom_.twist.twist.angular.z = mean_;
+
+    odom_pub_ ->publish(kalman_odom_);
 
 }
 
@@ -45,4 +52,21 @@ void KalmanFilter::measurementUpdate()
 {
     mean_ = (measurement_variance_ * mean_ + variance_ * imu_angular_z_)/(variance_ + measurement_variance_);
     variance_ = (measurement_variance_ * variance_) / (measurement_variance_ + variance_);
+}
+
+void KalmanFilter::statePrediction()
+{   
+    mean_ = mean_ + motion_;
+    variance_ = variance_ + motion_variance_;
+}
+
+
+int main (int argc, char* argv[])
+{
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<KalmanFilter>("kalman_filter");
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
+
 }

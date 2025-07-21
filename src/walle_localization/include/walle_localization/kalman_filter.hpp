@@ -31,9 +31,10 @@ private:
     double measurement_variance_;
 
     void measurementUpdate();
+    void statePrediction();
 
 
-    nav_msgs::msg::Odometry kalaman_odom_;
+    nav_msgs::msg::Odometry kalman_odom_;
 
 
     void odomCallback(const nav_msgs::msg::Odometry & odom);
