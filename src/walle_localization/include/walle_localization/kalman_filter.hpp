@@ -27,6 +27,11 @@ private:
     double last_angular_z_;
     double motion_;
 
+    double motion_variance_;
+    double measurement_variance_;
+
+    void measurementUpdate();
+
 
     nav_msgs::msg::Odometry kalaman_odom_;
 
