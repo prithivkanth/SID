@@ -30,6 +30,7 @@
   <depend>tf2</depend>
   <depend>eigen</depend>
   <depend>walle_msg</depend>
+  <depend>rclcpp_lifecycle</depend>
 
 
 

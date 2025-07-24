@@ -18,6 +18,8 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(walle_msg REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+
 
 
 
@@ -42,6 +44,10 @@ ament_target_dependencies(simple_service_server rclcpp walle_msg)
 add_executable(simple_client_server src/simple_client_server.cpp)
 ament_target_dependencies(simple_client_server rclcpp walle_msg)
 
+
+add_executable(simple_lifecycle_node src/simple_lifecycle_node.cpp)
+ament_target_dependencies(simple_lifecycle_node rclcpp rclcpp_lifecycle std_msgs)
+
 install(
   DIRECTORY include
   DESTINATION include
@@ -53,6 +59,7 @@ install(TARGETS
   simple_tf_kinematics
   simple_service_server
   simple_client_server
+  simple_lifecycle_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
