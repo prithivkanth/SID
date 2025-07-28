@@ -13,6 +13,9 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>libserial-dev</depend>
+  <depend>hardware_interface</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>pluginlib</depend>
 
   
 
