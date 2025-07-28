@@ -1,0 +1,11 @@
+<library path = "walle_firmare">
+    <class name= "walle_firmare/WalleInterface"
+           type= "walle_firmware::WalleInterface"
+           base_class_type= "hardware::SystemInterface">
+
+        <description>
+            Walle hardware interface
+        </description>
+        
+    </class>
+</library>
