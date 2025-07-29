@@ -9,12 +9,12 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(PkgConfig)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
-find_package(PkgConfig)
+
 pkg_check_modules(SERIAL libserial)
 
 ament_python_install_package(${PROJECT_NAME})
@@ -27,8 +27,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   include
   "${SERIAL_INCLUDE_DIRS}"
 )
+
 target_link_libraries(${PROJECT_NAME}
  "${SERIAL_LDFLAGS}")
+
 ament_target_dependencies(${PROJECT_NAME}
   hardware_interface
   pluginlib
@@ -43,14 +45,17 @@ ament_target_dependencies(serial_transmitter rclcpp std_msgs)
 target_include_directories(serial_transmitter PUBLIC "${SERIAL_INCLUDE_DIRS}")
 target_link_libraries(serial_transmitter "${SERIAL_LDFLAGS}")
 
-install(
-  DIRECTORY include
-  DESTINATION include
-)
+add_executable(serial_reciever src/serial_reciever.cpp)
+ament_target_dependencies(serial_reciever rclcpp std_msgs)
+target_include_directories(serial_reciever PUBLIC "${SERIAL_INCLUDE_DIRS}")
+target_link_libraries(serial_reciever "${SERIAL_LDFLAGS}")
+
+pluginlib_export_plugin_description_file(hardware_interface walle_interface.xml)
 
 
 install(TARGETS
   serial_transmitter
+  serial_reciever
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -62,13 +67,16 @@ install(
   DESTINATION lib
 )
 
-ament_export_include_directories(
-  include
+install(
+  DIRECTORY include
+  DESTINATION include
 )
 
-ament_export_libraries(
-  ${PROJECT_NAME}
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
+
 
 
 
@@ -80,5 +88,21 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+
+ament_export_include_directories(
+  include
+)
+
+ament_export_libraries(
+  ${PROJECT_NAME}
+)
+
+ament_export_dependencies(
+  hardware_interface
+  pluginlib
+  rclcpp
+  rclcpp_lifecycle
+)
 
 ament_package()
