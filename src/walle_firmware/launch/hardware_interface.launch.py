@@ -38,8 +38,14 @@ def generate_launch_description():
           ]
      )
 
+     imu_driver_node = Node (
+          package="walle_firmware",
+          executable="mpu6050_driver.py"
+     )
+
      return LaunchDescription([
           robot_state_publisher_node,
-          controller_manager
+          controller_manager,
+          imu_driver_node
 
      ])
