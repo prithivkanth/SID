@@ -68,6 +68,13 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  walle_controller/twist_to_twiststamped.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

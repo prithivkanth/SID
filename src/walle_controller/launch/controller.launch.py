@@ -7,6 +7,7 @@ from launch.conditions import UnlessCondition, IfCondition
 
 
 def noisy_controller(context, *argc, **kwargs):
+    use_sim_time = LaunchConfiguration("use_sim_time")
     wheel_radius = float(LaunchConfiguration("wheel_radius").perform(context))
     wheel_separation = float(LaunchConfiguration("wheel_separation").perform(context))
     wheel_radius_error = float(LaunchConfiguration("wheel_radius_error").perform(context))
@@ -46,11 +47,11 @@ def generate_launch_description():
         "wheel_separation",
         default_value="0.31",
     )
-    wheel_radius_error = DeclareLaunchArgument(
+    wheel_radius_error_arg= DeclareLaunchArgument(
         "wheel_radius_error",
         default_value="0.005",
     )
-    wheel_separation_error = DeclareLaunchArgument(
+    wheel_separation_error_arg= DeclareLaunchArgument(
         "wheel_separation_error",
         default_value="0.02",
     )
@@ -111,8 +112,8 @@ def generate_launch_description():
             use_simple_controller_arg,
             wheel_radius_arg,
             wheel_separation_arg,
-            wheel_radius_error,
-            wheel_separation_error,
+            wheel_radius_error_arg,
+            wheel_separation_error_arg,
             joint_state_broadcaster_spawner,
             wheel_controller_spawner,
             simple_controller,

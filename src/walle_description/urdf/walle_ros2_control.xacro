@@ -3,7 +3,7 @@
 
     <ros2_control name="RobotSystem" type="system">
 
-        
+        <!-- ros2_control Gazebo -->
         <xacro:if value="$(arg is_sim)">
             <xacro:if value="$(arg is_ignition)">
                 <hardware>
@@ -19,13 +19,17 @@
 
         </xacro:if>
 
-        <xacro:unless>
+
+        <!-- ros2_control Real Robot -->
+        <xacro:unless value="$(arg is_sim)">
             <hardware>
                 <plugin>walle_firmware/WalleInterface</plugin>
                 <param name="port">/dev/ttyUSB0</param>
             </hardware>
         </xacro:unless>
 
+
+        <!-- ros2_control Common Interfaces -->
         <joint name="left_wheel_joint">
         <command_interface name="velocity">
             <param name="min">-1</param>

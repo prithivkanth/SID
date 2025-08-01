@@ -81,8 +81,8 @@ void NoisyController::jointCallback(const sensor_msgs::msg::JointState &msg)
     y_ += d_s * sin(theta_);
 
 
-    RCLCPP_INFO_STREAM(get_logger(), "Linear : "<<linear<<" Angular : "<<angular);
-    RCLCPP_INFO_STREAM(get_logger(), "x : "<<x_<< ",y : "<<y_<<", theta : "<< theta_);
+    // RCLCPP_INFO_STREAM(get_logger(), "Linear : "<<linear<<" Angular : "<<angular);
+    // RCLCPP_INFO_STREAM(get_logger(), "x : "<<x_<< ",y : "<<y_<<", theta : "<< theta_);
 
 
         // Compose and publish the odom message
