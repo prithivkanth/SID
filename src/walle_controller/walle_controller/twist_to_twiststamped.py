@@ -18,6 +18,7 @@ class TwistToStamped(Node):
         stamped = TwistStamped()
         stamped.header.stamp = self.get_clock().now().to_msg()
         stamped.twist = msg
+        self.get_logger().info(f"Relaying Twist to TwistStamped: {msg}")
         self.publisher.publish(stamped)
 
 def main(args=None):
