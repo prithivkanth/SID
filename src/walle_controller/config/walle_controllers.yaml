@@ -1,7 +1,6 @@
 controller_manager:
   ros__parameters:
     update_rate: 100 # Hz
-    use_sim_time: true
 
     walle_controller:
       type: diff_drive_controller/DiffDriveController
@@ -35,7 +34,7 @@ walle_controller:
     cmd_vel_timeout: 0.5
 
     # Base frame_id
-    base_frame_id: base_link #default: base_link
+    base_frame_id: base_footprint #default: base_link
 
     # Publish limited velocity
     publish_limited_velocity: true
@@ -51,19 +50,21 @@ walle_controller:
     linear:
       x:
         has_velocity_limits    : true
-        max_velocity           : 1.0  # m/s
-        min_velocity           : -0.5 # m/s
+        max_velocity           : 0.7  # m/s
+        min_velocity           : -0.7 # m/s
         has_acceleration_limits: true
-        max_acceleration       : 0.8  # m/s^2
-        min_acceleration       : -0.4 # m/s^2
+        max_acceleration       : 0.7  # m/s^2
+        min_acceleration       : -0.7 # m/s^2
         has_jerk_limits        : false
         max_jerk               : 5.0  # m/s^3
     angular:
       z:
         has_velocity_limits    : true
-        max_velocity           : 1.7  # rad/s
+        max_velocity           : 8.5  # rad/s
+        min_velocity           : -8.5  # rad/s
         has_acceleration_limits: true
-        max_acceleration       : 1.5  # rad/s^2
+        max_acceleration       : 5.0  # rad/s^2
+        min_acceleration       : -5.0  # rad/s^2
         has_jerk_limits        : false
         max_jerk               : 2.5  # rad/s^3
 
