@@ -10,7 +10,7 @@
 <xacro:include filename="$(find walle_description)/urdf/walle_ros2_control.xacro" />
 <xacro:include filename="$(find walle_description)/urdf/walle_gazebo.xacro" />
 
- <link name="base_footprint"/>
+<!-- <link name="base_footprint"/> -->
 
 <link name="base_link">
   <inertial>
@@ -96,7 +96,7 @@
   </collision>
 </link>
 
-<link name="lidar_1">
+<link name="laser_link">
   <inertial>
     <origin xyz="-8.696423536846964e-08 -2.808509075580279e-07 0.009718373123905832" rpy="0 0 0"/>
     <mass value="0.5843654094095093"/>
@@ -138,11 +138,11 @@
   </collision>
 </link>
 
-<joint name="base_joint" type="fixed">
+<!-- <joint name="base_joint" type="fixed">
   <parent link="base_footprint"/>
   <child link="base_link" />
   <origin xyz="0 0 0" rpy="0 0 0"/>
-</joint>
+</joint> -->
 
 <joint name="left_wheel_joint" type="continuous">
   <origin xyz="0.055171 0.2712 0.054001" rpy="0 0 0"/>
@@ -164,10 +164,10 @@
   <child link="caster_wheel_1"/>
 </joint>
 
-<joint name="lidar_joint" type="fixed">
+<joint name="laser_joint" type="fixed">
   <origin xyz="0.112168 0.16141 0.179797" rpy="0 0 0"/>
   <parent link="base_link"/>
-  <child link="lidar_1"/>
+  <child link="laser_link"/>
 </joint>
 
 <joint name="imu_joint" type="fixed">
