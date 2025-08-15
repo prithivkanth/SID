@@ -44,19 +44,19 @@ private:
                 state_ = State::DANGER;
                 break;
             }
-
-            std_msgs::msg::Bool is_safety_stop;
-            if(state_ == State::DANGER)
-            {
-                is_safety_stop.data = true;
-            }
-            else if (state_== State::FREE)
-            {
-                is_safety_stop.data = false;
-            }
-
-            safety_stop_pub_ ->publish(is_safety_stop);
         }
+
+        std_msgs::msg::Bool is_safety_stop;
+        if(state_ == State::DANGER)
+        {
+            is_safety_stop.data = true;
+        }
+        else if (state_== State::FREE)
+        {
+            is_safety_stop.data = false;
+        }
+
+        safety_stop_pub_ ->publish(is_safety_stop);
     }
 };
 
