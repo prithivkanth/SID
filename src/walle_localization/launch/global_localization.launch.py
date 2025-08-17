@@ -17,6 +17,8 @@ def generate_launch_description():
         default_value="small_house"
     )
 
+    lifecycle_node = ["map_server"]
+
     map_name = LaunchConfiguration("map_name")
     use_sim_time = LaunchConfiguration("use_sim_time")
 
@@ -38,9 +40,22 @@ def generate_launch_description():
         ]
     )
 
+    nav2_lifecycle_manager = Node(
+        package="nav2_lifecycle_manager",
+        executable="lifecycle_manager",
+        name="lifecycle_manager_localization",
+        output="screen",
+        parameters=[
+            {"node_names":lifecycle_node},
+            {"use_sim_time": use_sim_time},
+            {"autostart" : True}
+        ]
+    )
+
 
     return LaunchDescription([
         map_name_arg,
         use_sim_time_arg,
-        nav2_map_server
+        nav2_map_server,
+        nav2_lifecycle_manager
     ])
