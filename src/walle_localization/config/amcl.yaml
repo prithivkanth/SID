@@ -1,0 +1,66 @@
+amcl:
+  ros__parameters:
+
+    # -------------------- Simulation / Time --------------------
+    use_sim_time: True   # Use simulation time (from Gazebo or bag file)
+
+    # -------------------- Odometry Motion Noise --------------------
+    alpha1: 0.2   # Rotation noise while rotating
+    alpha2: 0.2   # Rotation noise while moving straight
+    alpha3: 0.2   # Translation noise while moving straight
+    alpha4: 0.2   # Translation noise while rotating
+
+    # -------------------- Frames --------------------
+    base_frame_id: "base_footprint"   # Robot base frame
+    global_frame_id: "map"            # Global reference frame
+    odom_frame_id: "odom"             # Odometry frame
+
+    # -------------------- Laser Scan / Beamskip --------------------
+    do_beamskip: false                # Skip beams (false = use all)
+    beam_skip_distance: 0.5           # Distance threshold for skipping
+    beam_skip_error_threshold: 0.9    # Error threshold for skipping
+    beam_skip_threshold: 0.3          # Skip if this fraction are bad beams
+    scan_topic: scan                  # Topic name for LIDAR
+
+    # -------------------- Laser Model --------------------
+    laser_model_type: "likelihood_field"  # Type of sensor model
+    laser_likelihood_max_dist: 2.0        # Max distance for likelihood field
+    laser_max_range: 100.0                # Max range of laser
+    laser_min_range: -1.0                 # Min range of laser (-1 = auto)
+
+    # Sensor model probabilities
+    z_hit: 0.5     # Probability for correct hit
+    z_short: 0.05  # Probability of unexpected short reading
+    z_max: 0.05    # Probability of max-range reading
+    z_rand: 0.5    # Probability of random noise
+    sigma_hit: 0.2 # Std dev for hit noise
+    lambda_short: 0.1 # Exponential decay rate for short readings
+
+    # -------------------- Particle Filter --------------------
+    min_particles: 500     # Minimum number of particles
+    max_particles: 2000    # Maximum number of particles
+    resample_interval: 1   # Resample frequency
+    pf_err: 0.05           # Error threshold for resampling
+    pf_z: 0.99             # Confidence threshold for resampling
+    recovery_alpha_fast: 0.1 #  (generates random particles on random area of map when the robot is completely lost )
+    recovery_alpha_slow: 0.1 # 
+
+    # -------------------- Motion Model --------------------
+    robot_model_type: "nav2_amcl::DifferentialMotionModel" # Tank/diff drive
+
+    # -------------------- Updates --------------------
+    update_min_a: 0.2   # Minimum rotation (rad) before updating filter
+    update_min_d: 0.25  # Minimum translation (m) before updating filter
+
+    # -------------------- TF / Transforms --------------------
+    tf_broadcast: true       # Broadcast map->odom transform
+    transform_tolerance: 1.0 # TF tolerance in seconds
+
+    # -------------------- Pose Handling --------------------
+    save_pose_rate: 0.5      # Save pose every X seconds
+    set_initial_pose: true   # Set initial pose manually
+    initial_pose:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      yaw: 0.0
