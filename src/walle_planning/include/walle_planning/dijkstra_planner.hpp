@@ -67,6 +67,14 @@ private:
     void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr pose);
 
     nav_msgs::msg::Path plan(const geometry_msgs::msg::Pose &start, const geometry_msgs::msg::Pose &goal);
+
+    GraphNode worldToGrid(const geometry_msgs::msg::Pose & pose);
+
+    bool poseOnMap(const GraphNode & node);
+    geometry_msgs::msg::Pose gridToWorld(const GraphNode & node);
+    unsigned int poseToCell(const GraphNode & node);
+
+
 };
 }
 
