@@ -34,6 +34,14 @@ def generate_launch_description():
             "use_sim_time": "True"
         }.items()
     )
+
+    localization = IncludeLaunchDescription(
+        os.path.join(
+            get_package_share_directory("walle_localization"),
+            "launch",
+            "global_localization.launch.py"
+        ),
+    )
     
     return LaunchDescription([
         gazebo,
