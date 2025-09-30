@@ -19,6 +19,9 @@ include_directories(include)
 add_executable(dijkstra_planner src/dijkstra_planner.cpp)
 ament_target_dependencies(dijkstra_planner rclcpp nav_msgs geometry_msgs tf2_ros)
 
+add_executable(a_star_planner src/a_star_planner.cpp)
+ament_target_dependencies(a_star_planner rclcpp nav_msgs geometry_msgs tf2_ros)
+
 install(
   DIRECTORY include
   DESTINATION include
@@ -26,6 +29,7 @@ install(
 
 install(TARGETS 
   dijkstra_planner
+  a_star_planner
   DESTINATION lib/${PROJECT_NAME}
 )
 
