@@ -1,8 +1,7 @@
-#include<vector>
-#include<queue>
+#include <cmath>
+#include <chrono>
 
 #include "walle_planning/dijkstra_planner.hpp"
-#include "rmw/qos_profiles.h"
 
 namespace walle_planning
 {
@@ -18,102 +17,135 @@ void DijkstraPlanner::configure(
   costmap_ = costmap_ros->getCostmap();
   global_frame_ = costmap_ros->getGlobalFrameID();
 
-  
+  smooth_client_ = rclcpp_action::create_client<nav2_msgs::action::SmoothPath>(node_, "smooth_path");
 }
-nav_msgs::msg::Path DijkstraPlanner::plan(const geometry_msgs::msg::Pose &start, const geometry_msgs::msg::Pose &goal)
+
+void DijkstraPlanner::cleanup()
 {
-    std::vector<std::pair<int, int>> explore_directions = 
-    {
-        {-1,0}, {1,0}, {0,-1}, {0,1}
-    };
+  RCLCPP_INFO(
+    node_->get_logger(), "CleaningUp plugin %s of type DijkstraPlanner",
+    name_.c_str());
+}
 
-   std::priority_queue<GraphNode, std::vector<GraphNode>, std::greater<GraphNode>> pending_nodes;
-   std::vector<GraphNode> visited_nodes;
+void DijkstraPlanner::activate()
+{
+  RCLCPP_INFO(
+    node_->get_logger(), "Activating plugin %s of type DijkstraPlanner",
+    name_.c_str());
+  if (!smooth_client_->wait_for_action_server(std::chrono::seconds(3))) {
+    RCLCPP_ERROR(node_->get_logger(), "Action server not available after waiting");
+  }
+}
 
-   pending_nodes.push(worldToGrid(start));
+void DijkstraPlanner::deactivate()
+{
+  RCLCPP_INFO(
+    node_->get_logger(), "Deactivating plugin %s of type DijkstraPlanner",
+    name_.c_str());
+}
 
-    GraphNode active_node;
-    while(!pending_nodes.empty() && rclcpp::ok())
-    {
-        active_node = pending_nodes.top();
-        pending_nodes.pop();
+nav_msgs::msg::Path DijkstraPlanner::createPlan(
+  const geometry_msgs::msg::PoseStamped & start,
+  const geometry_msgs::msg::PoseStamped & goal)
+{
+  std::vector<std::pair<int, int>> explore_directions = {
+    {-1, 0}, {1, 0}, {0, -1}, {0, 1}
+  };
 
-        //goal found
-        if(worldToGrid(goal) == active_node)
-        {
-            break;
-        }
+  std::priority_queue<GraphNode, std::vector<GraphNode>, std::greater<GraphNode>> pending_nodes;
+  std::vector<GraphNode> visited_nodes;
+  
+  pending_nodes.push(worldToGrid(start.pose));
 
-        //explore neighbors
-        for (const auto &dir : explore_directions)
-        {
-            GraphNode new_node = active_node + dir;
+  GraphNode active_node;
+  while (!pending_nodes.empty() && rclcpp::ok()) {
+    active_node = pending_nodes.top();
+    pending_nodes.pop();
 
-            if (std::find(visited_nodes.begin(), visited_nodes.end(), new_node) == visited_nodes.end() &&
-                poseOnMap(new_node) && map_->data.at(poseToCell(new_node)) < 99 && map_->data.at(poseToCell(new_node)) >=0)
-                {
-                    new_node.cost = active_node.cost + 1 + map_->data.at(poseToCell(new_node));
-                    new_node.prev = std::make_shared<GraphNode>(active_node);
-                    pending_nodes.push(new_node);
-                    visited_nodes.push_back(new_node);
-                }
-        }
-
-        visited_map_.data.at(poseToCell(active_node)) = 10; //blue
-        map_pub_->publish(visited_map_);
+    // Goal found!
+    if(worldToGrid(goal.pose) == active_node){
+        break;
     }
 
-    nav_msgs::msg::Path path;
-    path.header.frame_id = map_->header.frame_id;
-    while(active_node.prev && rclcpp::ok()) {
-        geometry_msgs::msg::Pose last_pose = gridToWorld(active_node);
-        geometry_msgs::msg::PoseStamped last_pose_stamped;
-        last_pose_stamped.header.frame_id = map_->header.frame_id;
-        last_pose_stamped.pose = last_pose;
-        path.poses.push_back(last_pose_stamped);
-        active_node = *active_node.prev;
+    // Explore neighbors
+    for (const auto & dir : explore_directions) {
+        GraphNode new_node = active_node + dir;
+        // Check if the new position is within bounds and not an obstacle
+        if (std::find(visited_nodes.begin(), visited_nodes.end(), new_node) == visited_nodes.end() &&
+            poseOnMap(new_node) && costmap_->getCost(new_node.x, new_node.y) < 99) {
+            // If the node is not visited, add it to the queue
+            new_node.cost = active_node.cost + 1 + costmap_->getCost(new_node.x, new_node.y);
+            new_node.prev = std::make_shared<GraphNode>(active_node);
+            pending_nodes.push(new_node);
+            visited_nodes.push_back(new_node);
+        }
     }
-    std::reverse(path.poses.begin(), path.poses.end());
-    return path;
+  }
+
+  nav_msgs::msg::Path path;
+  path.header.frame_id = global_frame_;
+  while(active_node.prev && rclcpp::ok()) {
+    geometry_msgs::msg::Pose last_pose = gridToWorld(active_node);
+    geometry_msgs::msg::PoseStamped last_pose_stamped;
+    last_pose_stamped.header.frame_id = global_frame_;
+    last_pose_stamped.pose = last_pose;
+    path.poses.push_back(last_pose_stamped);
+    active_node = *active_node.prev;
+  }
+  std::reverse(path.poses.begin(), path.poses.end());
+
+  if(smooth_client_->action_server_is_ready()){
+    nav2_msgs::action::SmoothPath::Goal path_smooth;
+    path_smooth.path = path;
+    path_smooth.check_for_collisions = false;
+    path_smooth.smoother_id = "simple_smoother";
+    path_smooth.max_smoothing_duration.sec = 10;
+    auto future = smooth_client_->async_send_goal(path_smooth);
+
+    if(future.wait_for(std::chrono::seconds(3)) == std::future_status::ready){
+      auto goal_handle = future.get();
+      if(goal_handle){
+        auto result_future = smooth_client_->async_get_result(goal_handle);
+        if(result_future.wait_for(std::chrono::seconds(3)) == std::future_status::ready){
+          auto result_path = result_future.get();
+          if(result_path.code == rclcpp_action::ResultCode::SUCCEEDED){
+            path = result_path.result->path;
+          }
+        }
+      }
+    }
+  }
+
+  return path;
 }
 
 bool DijkstraPlanner::poseOnMap(const GraphNode & node)
 {
-    return node.x < static_cast <int>(map_->info.width) && node.x >= 0 &&
-            node.y < static_cast <int>(map_->info.height) && node.y >= 0;
+    return node.x < static_cast<int>(costmap_->getSizeInCellsX()) && node.x >= 0 &&
+        node.y < static_cast<int>(costmap_->getSizeInCellsY()) && node.y >= 0;
 }
 
 GraphNode DijkstraPlanner::worldToGrid(const geometry_msgs::msg::Pose & pose)
 {
-    int grid_x = static_cast<int>((pose.position.x - map_->info.origin.position.x) / map_->info.resolution);
-    int grid_y = static_cast<int>((pose.position.y - map_->info.origin.position.y) / map_->info.resolution);
-
-    return GraphNode(grid_x,grid_y);
-
+    int grid_x = static_cast<int>((pose.position.x - costmap_->getOriginX()) / costmap_->getResolution());
+    int grid_y = static_cast<int>((pose.position.y - costmap_->getOriginY()) / costmap_->getResolution());
+    return GraphNode(grid_x, grid_y);
 }
 
 geometry_msgs::msg::Pose DijkstraPlanner::gridToWorld(const GraphNode & node)
 {
     geometry_msgs::msg::Pose pose;
-    pose.position.x = node.x * map_->info.resolution + map_->info.origin.position.x;
-    pose.position.y = node.y * map_->info.resolution + map_->info.origin.position.y;
+    pose.position.x = node.x * costmap_->getResolution() + costmap_->getOriginX();
+    pose.position.y = node.y * costmap_->getResolution() + costmap_->getOriginY();
     return pose;
 }
 
 unsigned int DijkstraPlanner::poseToCell(const GraphNode & node)
 {
-    return map_-> info.width * node.y + node.x;
+    return costmap_->getOriginX() * node.y + node.x;
 }
 
-}
+}  
 
-
-int main (int argc, char** argv)
-{
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<walle_planning::DijkstraPlanner>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
-}
-
+#include "pluginlib/class_list_macros.hpp"
+PLUGINLIB_EXPORT_CLASS(walle_planning::DijkstraPlanner, nav2_core::GlobalPlanner)
