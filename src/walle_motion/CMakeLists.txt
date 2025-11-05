@@ -37,7 +37,7 @@ set(dependencies
 add_library(pd_motion_planner SHARED src/pd_motion_planner.cpp)
 ament_target_dependencies(pd_motion_planner ${dependencies})
 
-add_executable(pure_pursuit src/pure_pursuit.cpp)
+add_library(pure_pursuit src/pure_pursuit.cpp)
 ament_target_dependencies(pure_pursuit ${dependencies})
 
 pluginlib_export_plugin_description_file(nav2_core motion_planner_plugins.xml)
@@ -67,6 +67,7 @@ endif()
 ament_export_include_directories(include)
 ament_export_libraries(
   pd_motion_planner
+  pure_pursuit
 )
 ament_export_dependencies(${dependencies})
 ament_package()
