@@ -1,0 +1,6 @@
+<class_libraries>
+    <library path="pd_motion_planner">
+        <class type="walle_motion ::PDMotionPlanner" base_class_type="nav2_core::Controller">
+        </class>
+    </library>
+</class_libraries>

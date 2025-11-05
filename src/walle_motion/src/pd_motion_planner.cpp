@@ -1,177 +1,164 @@
-#include "walle_motion/pd_motion_planner.hpp"
-#include "tf2/utils.h"
-#include "geometry_msgs/msg/transform_stamped.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
-
-#include <chrono>
 #include <algorithm>
+
+#include "nav2_util/node_utils.hpp"
+#include "tf2/utils.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "walle_motion/pd_motion_planner.hpp"
 
 namespace walle_motion
 {
-PDMotionPlanner::PDMotionPlanner() : Node("pd_motion_planner_node"),
-  kp_(2.0), kd_(0.1), step_size_(0.2), max_linear_velocity_(0.3),
-  max_angular_velocity_(1.0), prev_angular_error_(0.0), prev_linear_error_(0.0)
+void PDMotionPlanner::configure(
+  const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
+  std::string name, std::shared_ptr<tf2_ros::Buffer> tf_buffer,
+  std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
 {
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  node_ = parent;
 
-  declare_parameter<double>("kp", kp_);
-  declare_parameter<double>("kd", kd_);
-  declare_parameter<double>("step_size", step_size_);
-  declare_parameter<double>("max_linear_velocity", max_linear_velocity_);
-  declare_parameter<double>("max_angular_velocity", max_angular_velocity_);
-  kp_ = get_parameter("kp").as_double();
-  kd_ = get_parameter("kd").as_double();
-  step_size_ = get_parameter("step_size").as_double();
-  max_linear_velocity_ = get_parameter("max_linear_velocity").as_double();
-  max_angular_velocity_ = get_parameter("max_angular_velocity").as_double();
+  auto node = node_.lock();
 
-  path_sub_ = create_subscription<nav_msgs::msg::Path>(
-      "/a_star/path", 10, std::bind(&PDMotionPlanner::pathCallback, this, std::placeholders::_1));
-        
-  cmd_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+  costmap_ros_ = costmap_ros;
+  tf_buffer_ = tf_buffer;
+  plugin_name_ = name;
+  logger_ = node->get_logger();
+  clock_ = node->get_clock();
 
-  next_pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("/pd/next_pose", 10);
-  control_loop_ = create_wall_timer(
-    std::chrono::milliseconds(100), std::bind(&PDMotionPlanner::controlLoop, this));
-    
-  last_cycle_time_ = get_clock()->now();
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".kp",
+    rclcpp::ParameterValue(2.0));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".kd",
+    rclcpp::ParameterValue(0.1));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".max_linear_velocity",
+    rclcpp::ParameterValue(0.3));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".max_angular_velocity",
+    rclcpp::ParameterValue(1.0));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".step_size",
+    rclcpp::ParameterValue(0.2));
+
+  node->get_parameter(plugin_name_ + ".kp", kp_);
+  node->get_parameter(plugin_name_ + ".kd", kd_);
+  node->get_parameter(plugin_name_ + ".max_linear_velocity", max_linear_velocity_);
+  node->get_parameter(plugin_name_ + ".max_angular_velocity", max_angular_velocity_);
+  node->get_parameter(plugin_name_ + ".step_size", step_size_);
+
+  next_pose_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>("pd/next_pose", 1);
 }
 
-void PDMotionPlanner::pathCallback(const nav_msgs::msg::Path::SharedPtr path)
+void PDMotionPlanner::cleanup()
 {
-  global_plan_ = *path;
+  RCLCPP_INFO(logger_, "Cleaning up PDMotionPlanner");
+  next_pose_pub_.reset();
 }
 
-void PDMotionPlanner::controlLoop()
+void PDMotionPlanner::activate()
 {
+  auto node = node_.lock();
+  RCLCPP_INFO(logger_, "Activating PDMotionPlanner");
+  next_pose_pub_->on_activate();
+  last_cycle_time_ = node->get_clock()->now();
+}
+
+void PDMotionPlanner::deactivate()
+{
+  RCLCPP_INFO(logger_, "Deactivating PDMotionPlanner");
+  next_pose_pub_->on_deactivate();
+}
+
+geometry_msgs::msg::TwistStamped PDMotionPlanner::computeVelocityCommands(
+  const geometry_msgs::msg::PoseStamped & robot_pose,
+  const geometry_msgs::msg::Twist &,
+  nav2_core::GoalChecker *)
+{
+  auto node = node_.lock();
+  geometry_msgs::msg::TwistStamped cmd_vel;
+  cmd_vel.header.frame_id = robot_pose.header.frame_id;
+
   if(global_plan_.poses.empty()){
-    return;
+    RCLCPP_ERROR(logger_, "Empty Plan!");
+    return cmd_vel;
   }
 
-  // Get the robot's current pose in the odom frame
-  geometry_msgs::msg::TransformStamped robot_pose;
-  try {
-    robot_pose = tf_buffer_->lookupTransform(
-      "odom", "base_footprint", tf2::TimePointZero);
-  } catch (tf2::TransformException &ex) {
-    RCLCPP_WARN(get_logger(), "Could not transform: %s", ex.what());
-    return;
-  }
-  
-  if(!transformPlan(robot_pose.header.frame_id))
-  {
-    RCLCPP_ERROR(get_logger(), "unable to transform plan in robot's frame");
-    return;
+  if(!transformPlan(robot_pose.header.frame_id)){
+    RCLCPP_ERROR(logger_, "Unable to transform Plan in robot's frame");
+    return cmd_vel;
   }
 
-  geometry_msgs::msg::PoseStamped robot_pose_stamped;
-  robot_pose_stamped.header.frame_id = robot_pose.header.frame_id;
-  robot_pose_stamped.pose.position.x = robot_pose.transform.translation.x;
-  robot_pose_stamped.pose.position.y = robot_pose.transform.translation.y;
-  robot_pose_stamped.pose.orientation = robot_pose.transform.rotation;
-
-  auto next_pose = getNextPose(robot_pose_stamped);
-
-  double dx = next_pose.pose.position.x - robot_pose_stamped.pose.position.x;
-  double dy = next_pose.pose.position.y - robot_pose_stamped.pose.position.y;
-  double distance = std::sqrt(dx*dx + dy*dy);
-
-  if(distance<=0.1)
-  {
-    RCLCPP_INFO(get_logger(), "Goal Reached");
-    global_plan_.poses.clear();
-    return;
-  }
-
+  auto next_pose = getNextPose(robot_pose);
   next_pose_pub_->publish(next_pose);
-
+        
   // Calculate the PDMotionPlanner command
   tf2::Transform next_pose_robot_tf, robot_tf, next_pose_tf;
-  tf2::fromMsg(robot_pose_stamped.pose, robot_tf);
+  tf2::fromMsg(robot_pose.pose, robot_tf);
   tf2::fromMsg(next_pose.pose, next_pose_tf);
   next_pose_robot_tf = robot_tf.inverse() * next_pose_tf;
 
-  double dt = (get_clock()->now() - last_cycle_time_).seconds();
+  double dt = (node->get_clock()->now() - last_cycle_time_).seconds();
 
   double angular_error = next_pose_robot_tf.getOrigin().getY();
   double angular_error_derivative = (angular_error - prev_angular_error_) / dt;
   double linear_error = next_pose_robot_tf.getOrigin().getX();
   double linear_error_derivative = (linear_error - prev_linear_error_) / dt;
 
-  geometry_msgs::msg::Twist cmd_vel;
-  cmd_vel.angular.z = std::clamp(kp_ * angular_error + kd_ * angular_error_derivative,
-    -max_angular_velocity_, max_angular_velocity_);
-  cmd_vel.linear.x = std::clamp(kp_ * linear_error + kd_ * linear_error_derivative,
-    -max_linear_velocity_, max_linear_velocity_);
+  cmd_vel.header.stamp = clock_->now();
+  cmd_vel.twist.angular.z = std::clamp(kp_ * angular_error + kd_ * angular_error_derivative,
+      -max_angular_velocity_, max_angular_velocity_);
+  cmd_vel.twist.linear.x = std::clamp(kp_ * linear_error + kd_ * linear_error_derivative,
+      -max_linear_velocity_, max_linear_velocity_);
   
-  last_cycle_time_ = get_clock()->now();
+  last_cycle_time_ = node->get_clock()->now();
   prev_angular_error_ = angular_error;
   prev_linear_error_ = linear_error;
 
-  cmd_pub_->publish(cmd_vel);
+  return cmd_vel;
 }
 
+void PDMotionPlanner::setPlan(const nav_msgs::msg::Path & path)
+{
+  global_plan_ = path;
+}
 
-
+void PDMotionPlanner::setSpeedLimit(const double &, const bool &){}
 
 geometry_msgs::msg::PoseStamped PDMotionPlanner::getNextPose(const geometry_msgs::msg::PoseStamped & robot_pose)
 {
   geometry_msgs::msg::PoseStamped next_pose = global_plan_.poses.back();
-
-  for (auto pose_it = global_plan_.poses.rbegin(); pose_it != global_plan_.poses.rend(); ++pose_it)
-  {
+  for (auto pose_it = global_plan_.poses.rbegin(); pose_it != global_plan_.poses.rend(); ++pose_it) {
     double dx = pose_it->pose.position.x - robot_pose.pose.position.x;
     double dy = pose_it->pose.position.y - robot_pose.pose.position.y;
-    double distance = std::sqrt(dx*dx + dy*dy);
-
-    if (distance > step_size_)
-    {
+    double distance = std::sqrt(dx * dx + dy * dy);
+    if(distance > step_size_){
       next_pose = *pose_it;
-    }
-    else
-    {
+    } else {
       break;
     }
   }
-
   return next_pose;
 }
 
 bool PDMotionPlanner::transformPlan(const std::string & frame)
 {
-  if (global_plan_.header.frame_id == frame)
-  {
+  if(global_plan_.header.frame_id == frame){
     return true;
   }
-
   geometry_msgs::msg::TransformStamped transform;
-
-  try
-  {
+  try{
     transform = tf_buffer_->lookupTransform(frame, global_plan_.header.frame_id, tf2::TimePointZero);
-  }
-  catch(tf2::ExtrapolationException & ex)
-  {
-    RCLCPP_ERROR_STREAM(get_logger(), "couldn't transform plan from frame "<<global_plan_.header.frame_id<<" to frame " << frame);
+  } catch (tf2::ExtrapolationException & ex) {
+    RCLCPP_ERROR_STREAM(logger_, "Couldn't transform plan from frame " <<
+      global_plan_.header.frame_id << " to frame " << frame);
     return false;
   }
-  for (auto & pose : global_plan_.poses)
-  {
+  for(auto & pose : global_plan_.poses){
     tf2::doTransform(pose, pose, transform);
   }
-
   global_plan_.header.frame_id = frame;
   return true;
 }
 
-}
+} 
 
-int main(int argc, char *argv[])
-{
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<walle_motion::PDMotionPlanner>();
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
-}
+#include "pluginlib/class_list_macros.hpp"
+PLUGINLIB_EXPORT_CLASS(walle_motion::PDMotionPlanner, nav2_core::Controller)
